@@ -15,3 +15,4 @@ full_game/index.html
 full_game/main.js
 !results/full-game-validation.json
 full_game/game.js
+*.log

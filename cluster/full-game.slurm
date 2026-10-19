@@ -2,6 +2,7 @@
 #SBATCH --job-name=pokerl-full
 #SBATCH --account=hir@h100
 #SBATCH --constraint=h100
+#SBATCH --qos=qos_gpu_h100-dev
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
@@ -12,22 +13,18 @@
 
 # Usage: sbatch cluster/full-game.slurm smoke|train|eval [training-run-directory]
 set -eo pipefail
-# Load the user's H100 module stack. The V100 wrapper inherits its own loaded stack.
-if [[ "${POKERL_GPU_ARCH:-h100}" == h100 ]]; then
-  module purge
-  module load arch/h100
-  module load pytorch-gpu/py3/2.8.0
-fi
 set -u
 cd "${SLURM_SUBMIT_DIR:?Submit from the repository root}"
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
 export MPLCONFIGDIR="${TMPDIR:-/tmp}/pokerl-mpl-${SLURM_JOB_ID}"
 export PYTHONUNBUFFERED=1
+
+source .venv/bin/activate
+
 mode="${1:-smoke}"
 case "$mode" in (smoke|train|eval) ;; (*) echo 'Expected smoke, train, or eval' >&2; exit 2;; esac
-# No dependency downloads or cloning from compute nodes.
-[[ -d upstream/.git && -f rl/upstream-source.js && -f full_game/index.html ]] || { echo 'Run python scripts/bootstrap.py before submitting.' >&2; exit 2; }
-python scripts/bootstrap.py
+# Bootstrap once before submission; compute nodes need neither Git nor downloads.
+[[ -d upstream/js && -f rl/upstream-source.js && -f full_game/index.html && -f full_game/main.js && -f full_game/game.js ]] || { echo 'Missing prepared game files. Run python scripts/bootstrap.py on the login/preparation node before submitting.' >&2; exit 2; }
 python -c 'import torch, playwright, sb3_contrib; assert torch.cuda.is_available(), "No CUDA GPU"; print(torch.__version__, torch.cuda.get_device_name()); print(torch.ones(1,device="cuda").sum().cpu())'
 
 case "$mode" in

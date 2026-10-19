@@ -5,7 +5,6 @@ import hashlib
 import importlib.metadata
 import json
 import platform
-import subprocess
 import time
 from pathlib import Path
 import torch
@@ -14,6 +13,7 @@ from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback,
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from training.full_game_env import ROOT, FullGameEnv, LocalServer
+from training.upstream_revision import read_revision
 
 
 def make_env(url,duration,dex,log):
@@ -40,7 +40,7 @@ def main():
         torch.ones(1,device=args.device).add_(1).cpu()  # Detect unsupported GPU architectures early.
     out=Path(args.output);out.mkdir(parents=True,exist_ok=True)
     if (out/'run.json').exists():raise RuntimeError('Output already contains a run; use a new directory')
-    revision=subprocess.check_output(['git','-C',str(ROOT/'upstream'),'rev-parse','HEAD'],text=True).strip()
+    revision=read_revision(ROOT/'upstream')
     lock=json.loads((ROOT/'upstream.lock.json').read_text())
     if revision!=lock['revision']:raise RuntimeError('Upstream revision mismatch')
     source_files=[ROOT/'full_game/training.js',ROOT/'full_game/game.js',ROOT/'training/full_game_env.py',Path(__file__).resolve()]
