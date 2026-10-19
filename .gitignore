@@ -16,3 +16,4 @@ full_game/main.js
 !results/full-game-validation.json
 full_game/game.js
 *.log
+.cache/
