@@ -5,18 +5,25 @@ those older jobs still train the small arena. No jobs have been submitted by Cod
 
 ## Prepare once, before submitting
 
-Use the Jean Zay modules directly; no virtual environment is required. The H100
-script loads your `arch/h100` and `pytorch-gpu/py3/2.8.0` modules. Prepare the
-additional Python dependencies and browser once, outside the compute job:
+The scripts activate `$PWD/.venv` after loading the GPU modules. Override the
+path with `POKERL_VENV=/absolute/path/to/venv`. Build the venv on Jean Zay using
+the same module stack as the job; do not copy the laptop's CPU environment.
+The H100 script loads `arch/h100` and `pytorch-gpu/py3/2.8.0`. For V100, load
+your V100-compatible modules before creating the venv and before submitting.
 
 ```bash
+# H100 setup. For V100, substitute your V100-compatible module stack.
 module purge
 module load arch/h100
 module load pytorch-gpu/py3/2.8.0
-# Check whether the module already provides the additional dependencies:
-python -c 'import torch, gymnasium, stable_baselines3, sb3_contrib, playwright, PIL'
-# If any are missing, install the extras in your user site (keep the module's torch):
-python -m pip install --user 'gymnasium==1.2.3' 'stable-baselines3==2.7.1' 'sb3-contrib==2.7.1' 'playwright>=1.55,<2' 'pillow>=11,<13'
+module load git
+python -m venv --system-site-packages .venv
+source .venv/bin/activate
+# Reuse the module's CUDA-enabled PyTorch; install the RL/browser dependencies.
+export UV_CACHE_DIR="$PWD/.cache/uv"
+export PIP_CACHE_DIR="$PWD/.cache/pip"
+python -c 'import torch; print(torch.__version__, torch.__file__)'
+python -m pip install 'gymnasium==1.2.3' 'stable-baselines3==2.7.1' 'sb3-contrib==2.7.1' 'playwright>=1.55,<2' 'pillow>=11,<13'
 export PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers"
 python -m playwright install chromium
 python scripts/bootstrap.py
@@ -25,9 +32,19 @@ module list 2> results/jz-modules.txt
 python -m pip freeze > results/jz-packages.txt
 ```
 
-Skip the `pip install` command if the dependencies are already available. Do not
-install the laptop CPU lockfile on Jean Zay. The scripts no longer activate
-`POKERL_VENV`; they use the module's Python and its available packages.
+The scripts load the Git module if `git` is missing: bootstrap and training metadata
+both use it. The observed job failures were missing `playwright` and missing `git`;
+the venv addresses the Python dependency, while the Git module addresses the latter.
+Do not run an unconstrained `uv pip install torch`: it may download another CUDA
+stack into your home cache. A home-cache `Disk quota exceeded` error is a storage
+failure, not a GPU failure. Put dependency caches on compute-visible project/work
+storage with sufficient quota (as above). `uv cache clean` can remove disposable
+uv cache entries from the default home cache when no other uv install is running;
+changing the cache location alone does not reclaim the already-used home space.
+No packages are installed inside a job. If you use both GPU families, keep separate
+venvs built with their respective module stacks and select one with `POKERL_VENV`.
+The default browser installation path is `$PWD/.playwright-browsers`; an explicit
+`PLAYWRIGHT_BROWSERS_PATH` overrides it.
 
 If the login node cannot download packages/assets, stage these on a permitted
 transfer/prepost node. Transfer `upstream/`, the generated bundles, installed packages,
@@ -35,7 +52,7 @@ and Chromium installation to compute-visible storage. Browser system libraries
 must already be installed by the site; a missing-library error in the smoke job
 needs a compatible site browser (`POKERL_CHROME=/absolute/path/to/chromium`) or
 an appropriate site container. Do not attempt package downloads inside the job.
-`PLAYWRIGHT_BROWSERS_PATH` and optional `POKERL_CHROME` are inherited
+`POKERL_VENV`, `PLAYWRIGHT_BROWSERS_PATH` and optional `POKERL_CHROME` are inherited
 by sbatch. Submit all commands from the repository root.
 
 ## 1. Short test job (H100)

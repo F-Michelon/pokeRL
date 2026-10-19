@@ -18,8 +18,21 @@ if [[ "${POKERL_GPU_ARCH:-h100}" == h100 ]]; then
   module load arch/h100
   module load pytorch-gpu/py3/2.8.0
 fi
+# Bootstrap and training metadata both need git; module purge may remove it.
+if ! command -v git >/dev/null 2>&1; then
+  module load git
+fi
+command -v git >/dev/null 2>&1 || { echo 'git is unavailable; load a Git module.' >&2; exit 2; }
 set -u
 cd "${SLURM_SUBMIT_DIR:?Submit from the repository root}"
+venv_dir="${POKERL_VENV:-$PWD/.venv}"
+[[ -f "$venv_dir/bin/activate" && -x "$venv_dir/bin/python" ]] || {
+  echo "Missing virtual environment: $venv_dir. Build it with the matching GPU modules first." >&2
+  exit 2
+}
+source "$venv_dir/bin/activate"
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$PWD/.playwright-browsers}"
+python -c 'import sys; print("Python:", sys.executable, flush=True)'
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
 export MPLCONFIGDIR="${TMPDIR:-/tmp}/pokerl-mpl-${SLURM_JOB_ID}"
 export PYTHONUNBUFFERED=1
