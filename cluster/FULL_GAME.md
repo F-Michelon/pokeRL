@@ -5,41 +5,43 @@ those older jobs still train the small arena. No jobs have been submitted by Cod
 
 ## Prepare once, before submitting
 
-From the repository root on Jean Zay, activate a site-compatible CUDA PyTorch
-Python 3.12 environment and install `requirements.txt` into your own virtualenv.
-For a site module containing PyTorch, a venv with `--system-site-packages` can reuse
-that build. Choose the module according to the GPU: the V100 build must support
-Volta; an H100-only CUDA build is not interchangeable. Do not install the laptop's
-CPU lockfile on Jean Zay. Record the actual module list and package versions.
+Use the Jean Zay modules directly; no virtual environment is required. The H100
+script loads your `arch/h100` and `pytorch-gpu/py3/2.8.0` modules. Prepare the
+additional Python dependencies and browser once, outside the compute job:
 
 ```bash
-# Load your site's compatible CUDA/PyTorch module first (module name is site-specific).
-python -m venv --system-site-packages .venv-jz
-source .venv-jz/bin/activate
-python -m pip install -r requirements.txt
-# Use a shared, writable location accessible from compute nodes:
+module purge
+module load arch/h100
+module load pytorch-gpu/py3/2.8.0
+# Check whether the module already provides the additional dependencies:
+python -c 'import torch, gymnasium, stable_baselines3, sb3_contrib, playwright, PIL'
+# If any are missing, install the extras in your user site (keep the module's torch):
+python -m pip install --user 'gymnasium==1.2.3' 'stable-baselines3==2.7.1' 'sb3-contrib==2.7.1' 'playwright>=1.55,<2' 'pillow>=11,<13'
 export PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers"
 python -m playwright install chromium
 python scripts/bootstrap.py
-export POKERL_VENV="$PWD/.venv-jz"
 mkdir -p results
 module list 2> results/jz-modules.txt
 python -m pip freeze > results/jz-packages.txt
 ```
 
+Skip the `pip install` command if the dependencies are already available. Do not
+install the laptop CPU lockfile on Jean Zay. The scripts no longer activate
+`POKERL_VENV`; they use the module's Python and its available packages.
+
 If the login node cannot download packages/assets, stage these on a permitted
-transfer/prepost node. Transfer `upstream/`, the generated bundles, environment,
+transfer/prepost node. Transfer `upstream/`, the generated bundles, installed packages,
 and Chromium installation to compute-visible storage. Browser system libraries
 must already be installed by the site; a missing-library error in the smoke job
 needs a compatible site browser (`POKERL_CHROME=/absolute/path/to/chromium`) or
 an appropriate site container. Do not attempt package downloads inside the job.
-`PLAYWRIGHT_BROWSERS_PATH`, `POKERL_VENV`, and optional `POKERL_CHROME` are inherited
+`PLAYWRIGHT_BROWSERS_PATH` and optional `POKERL_CHROME` are inherited
 by sbatch. Submit all commands from the repository root.
 
 ## 1. Short test job (H100)
 
 ```bash
-smoke_job=$(sbatch --parsable --time=00:15:00 cluster/full-game.slurm smoke)
+smoke_job=$(sbatch --parsable --qos=qos_gpu_h100-dev --time=00:15:00 cluster/full-game.slurm smoke)
 echo "$smoke_job"
 squeue -j "$smoke_job"
 # After completion:
@@ -112,12 +114,15 @@ the mask to every prediction as required by
 
 Replace `cluster/full-game.slurm` with `cluster/full-game-v100.slurm` in the three
 submission commands. It uses `hir@v100`, a V100 32 GB constraint, ten CPUs and the
-same training code. Do not mix smoke on one GPU architecture with an untested
+same training code. Load your V100-compatible PyTorch modules before submitting;
+the wrapper inherits them and does not load the H100 modules. Do not mix smoke on one GPU architecture with an untested
 Python/CUDA environment on the other.
 
 The H100 script uses `hir@h100` and `--constraint=h100`, following the
 [IDRIS guide](https://www.idris.fr/media/eng/ia/guide_nouvel_utilisateur_ia-eng.pdf).
-The scripts inherit the default QoS; use `sbatch --qos=<your-allowed-qos>` if your
+The scripts inherit the default QoS. The smoke command explicitly selects your
+`qos_gpu_h100-dev` QoS; omit or replace it when using V100. Keeping that choice on
+the smoke command avoids applying a development QoS to the two-hour training job. Use `sbatch --qos=<your-allowed-qos>` if your
 allocation requires one. Check your current allocation with `sinfo`/site guidance.
 No specific module version or optional development QoS is assumed.
 

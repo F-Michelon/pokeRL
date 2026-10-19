@@ -12,4 +12,5 @@
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:?}"
 # Reuse the exact same smoke/train/eval implementation; SBATCH lines are comments here.
+export POKERL_GPU_ARCH=v100
 bash cluster/full-game.slurm "$@"
