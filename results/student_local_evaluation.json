@@ -1,0 +1,9 @@
+{
+  "visual_status": "complete",
+  "wall_seconds": 62.4987009409997,
+  "steps": 86,
+  "seed": 1000000000,
+  "model": "results/student_local.zip",
+  "config": "arena_easy",
+  "device": "cpu"
+}

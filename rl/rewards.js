@@ -1,0 +1,1 @@
+export function reward(before,after){return (after.survival-before.survival)*0.1+(after.xp-before.xp)*0.1+(after.kills-before.kills)*0.5-(after.damage-before.damage)*0.1-(after.dead&&!before.dead?10:0);}

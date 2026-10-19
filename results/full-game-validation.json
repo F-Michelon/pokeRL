@@ -1,0 +1,33 @@
+{
+  "mode": "local",
+  "guest": true,
+  "state": "playing",
+  "terrain": [
+    "floor",
+    "liquid",
+    "wall"
+  ],
+  "props": [
+    "grass",
+    "tree",
+    "altar",
+    "rock",
+    "trap",
+    "chest",
+    "bigchest",
+    "spring"
+  ],
+  "enemies": [
+    {
+      "dex": 86,
+      "hp": 58,
+      "maxHp": 58,
+      "behavior": "chase"
+    }
+  ],
+  "worldTime": 3.5999333333333308,
+  "firebase": null,
+  "isolated": true,
+  "sentinel": "unchanged",
+  "local_save_restored": true
+}

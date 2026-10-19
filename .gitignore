@@ -1,0 +1,17 @@
+upstream/
+.venv/
+.venv-jz/
+.playwright-browsers/
+__pycache__/
+*.pyc
+rl/upstream-source.js
+results/*
+!results/.gitkeep
+!results/validation.json
+!results/baselines.json
+!results/EXPERIMENTS.md
+!results/student_local_evaluation.json
+full_game/index.html
+full_game/main.js
+!results/full-game-validation.json
+full_game/game.js

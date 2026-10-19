@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <base href="/upstream/">
+  <title>PokéSurvivor — local RL arena</title>
+  <style>
+    @font-face{font-family:Pixelify;src:url('/upstream/assets/fonts/PixelifySans.ttf')}
+    html,body{margin:0;background:#101820;color:#fff;font:16px system-ui}
+    canvas{display:block;width:1280px;height:720px;image-rendering:pixelated}
+    p{margin:12px}a{color:#83d6ff}
+  </style>
+</head>
+<body>
+  <canvas id="game" width="1280" height="720"></canvas>
+  <p>Local RL arena · WASD to move · 1/2/3 upgrade · R restart · Space start.</p>
+  <p><a href="/full_game/">Play the full local game</a> · <a href="/rl/browser_runner/">Training arena</a> · <a href="/rl/browser_runner/?graphics=debug">Debug shapes</a></p>
+  <script src="/upstream/js/core/util.js"></script>
+  <script src="/upstream/js/data/sprites-meta.js"></script>
+  <script src="/upstream/js/core/sprites.js"></script>
+  <script src="/upstream/js/world/tiles.js"></script>
+  <script src="/upstream/js/entities/vfx.js"></script>
+  <script type="module" src="/rl/browser_runner/main.js"></script>
+</body>
+</html>
