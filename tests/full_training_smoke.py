@@ -44,6 +44,25 @@ def main():
             summary={'observation_size':env.observation_space.shape[0],'actions':int(env.action_space.n),'deterministic_replay':True,**env.latest['info']}
             obs,_=env.reset(seed=999)
             assert env.latest['info']['upgrades']==0 and env.latest['info']['itemChoices']==0
+            # A distant heal stays visible even with >20 closer XP drops.
+            env.page.evaluate('''() => {
+                const p=G.Game.player;G.Pickups.clear();
+                for(let i=0;i<30;i++)G.Pickups.addRemote(90000+i,'xp',p.x+30+i,p.y,2);
+                G.Pickups.addRemote(91000,'heal',p.x+200,p.y,0);
+            }''')
+            snapshot=env.page.evaluate('fullTraining.snapshot()')
+            layout=env.page.evaluate('fullTraining.layout()')
+            heal_slot=snapshot['observation'][layout['healing']['start']:]
+            assert heal_slot[0]==1 and heal_slot[1]==0.2 and heal_slot[8]==1
+            # Count actual healing (capped by missing HP), not requested amount.
+            env.page.evaluate('''() => {
+                const p=G.Game.player;G.Pickups.clear();p.hp=p.maxHp-1;p.invuln=100;
+                G.Pickups.addRemote(92000,'heal',p.x,p.y,0);
+            }''')
+            env.step(0)
+            assert env.latest['info']['healingPickups']==1
+            assert env.latest['info']['healed']==1
+            assert env.page.evaluate('fullTraining.snapshot().info.rewardComponents')==env.latest['info']['rewardComponents']
             env.page.evaluate('G.Game.player.hp=1;G.Game.player.invuln=0;G.Game.player.hurt(10000)')
             assert env.page.evaluate('fullTraining.snapshot().terminated')
             print(json.dumps(summary,indent=2))

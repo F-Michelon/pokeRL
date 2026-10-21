@@ -47,8 +47,19 @@ def build():
       if (state === 'playing') update(1 / 60);
       G.Input.endFrame();
     },
+    rlRender() {
+      if (!window.POKERL_TRAINING) throw new Error('Training mode required');
+      // Draw only: the policy owns the simulation clock and all game updates.
+      frameDt = 0;
+      if (pl) render();
+    },
 '''
     game = game.replace(anchor, anchor + hook)
+    pause_anchor = '  function autoPause() {'
+    if game.count(pause_anchor) != 1:
+        raise RuntimeError('Upstream pause handler changed; review training adapter')
+    game = game.replace(pause_anchor,
+                        pause_anchor + '\n    if (window.POKERL_TRAINING) return;')
     (target / 'game.js').write_text(notice + game)
 
 if __name__ == '__main__':

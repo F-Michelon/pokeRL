@@ -65,10 +65,15 @@ across arbitrary software versions or hardware changes.
 
 [`full_game/training.js`](../full_game/training.js) constructs the structured
 observation, valid-action mask, reward and episode metrics. The current vector
-contains 2,366 values; Python derives its shape from the initial observation.
+contains 4,088 values by default (v2); the legacy v1 observation has 2,366 and
+the pickup-only variant has 2,926. Python derives its shape from the initial observation.
 It includes player state, nearby enemies/projectiles/pickups, local terrain and
 hazards, world objects, equipped moves/items and the contents of pending choices.
 Nearby entity lists are bounded, so this remains a partially observed task.
+V2 reserves independent slots for XP, healing, utility drops and hostile
+projectiles, and adds measured enemy velocity, collision radii and attack timers.
+See [experiment configurations](full-game-experiments.md) for feature details,
+reward alternatives and controlled comparisons.
 
 | Action | Meaning |
 | --- | --- |
@@ -84,6 +89,8 @@ the game's interaction logic. There is one joint policy, not separate movement
 and strategy agents.
 
 Each step receives:
+
+With the original reward weights (the default unless the config overrides them):
 
 ```text
 reward = 0.1 × additional survival seconds
@@ -115,7 +122,7 @@ runs, preventing unlimited decisions without game-time progress.
 | Minibatch size | 64 |
 | Learning rate | 0.0003 |
 | Network hidden layers | 256, 256 |
-| Requested transitions | 100,000 |
+| Requested transitions | 1,000,000 |
 | Episode horizon | 120 simulated seconds |
 | Pokémon / initial training seed | dex 7 (Squirtle) / 123 |
 
@@ -142,18 +149,20 @@ leave room in the Slurm allocation for setup, optimization and saving.
 | `model.zip` | Final policy checkpoint, including model training state |
 | `run.json` | Arguments, source pin, package versions, GPU, selected source hashes, timing and completed transitions |
 | `env-*.monitor.csv` | Per-worker completed episode returns, lengths and gameplay metrics |
-| `checkpoints/full_*_steps.zip` | Intermediate checkpoints, approximately every 10,000 transitions |
+| `checkpoints/full_*_steps.zip` | Intermediate checkpoints, approximately every 100,000 transitions by default |
+| `progress.csv` | PPO optimization and rollout diagnostics |
 | `evaluation-<jobid>.json` | Cluster evaluation means and individual episodes |
 
-Keep `run.json` beside `model.zip`: evaluation reads it to recover the duration
-and Pokémon. Most files under `results/` are ignored by Git; explicitly retain
+Keep `run.json` beside `model.zip`: evaluation reads it to recover the duration,
+Pokémon, observation version and reward settings. Most files under `results/` are ignored by Git; explicitly retain
 or transfer experiments you want to keep.
 
 `--resume` continues a compatible full-game checkpoint into a new output directory.
 It preserves model/optimizer state but does not restore live environments,
-mid-episode trajectories or exact environment RNG state. The common Slurm script
-does not expose a resume option; use a dedicated batch script invoking the Python
-CLI if continuation is needed. Arena and vision checkpoints are incompatible.
+mid-episode trajectories or exact environment RNG state. Set `POKERL_RESUME` to
+the checkpoint path in the common Slurm script; requested steps are additional.
+Resume inherits experimental settings and rejects incompatible changes.
+Arena and vision checkpoints are incompatible.
 
 ## 6. Evaluate on held-out episodes
 

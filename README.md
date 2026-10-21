@@ -15,6 +15,8 @@ experiments. Their checkpoints and environment contracts are separate.
 | [Project pipeline](docs/pipeline.md) | Source preparation, browser simulation, observations, actions, reward, PPO and evaluation |
 | [Jean Zay workflow](docs/jean-zay.md) | Offline preparation, venv, V100/H100 smoke → train → eval, outputs and troubleshooting |
 | [Understanding training logs](docs/training-logs.md) | Episodes vs iterations, parallel games, simulated speed and PPO diagnostics |
+| [Improvement experiments](docs/full-game-experiments.md) | Pickup/danger observations, reward and network comparisons, SLURM configs, longer training |
+| [Watch a trained model](docs/watch-model.md) | Live model playback and headless video recording, locally or on Jean Zay |
 | [Arena and vision experiments](docs/arena-and-vision.md) | Legacy arena, curriculum, screenshot distillation and historical results |
 
 ## Full-game training on Jean Zay
@@ -42,7 +44,7 @@ For H100, use `cluster/full-game.slurm` with an H100-compatible environment.
 The scripts currently select development QoS values; check that your requested
 wall time is allowed and override `--qos` when needed.
 
-Default training uses four parallel games, 100,000 transitions, a 120-second
+Default training uses four parallel games, 1,000,000 requested transitions, a 120-second
 simulated episode horizon and a 6,000-second learning timer. The default partner
 is Squirtle. Results are saved in `results/full-train-<jobid>/`; evaluation writes
 `evaluation-<eval-jobid>.json` there. A successful smoke run validates the pipeline,

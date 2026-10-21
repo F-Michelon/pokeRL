@@ -1,0 +1,13 @@
+{
+  "observation_version": "v2",
+  "steps": 2000000,
+  "net_arch": [256, 256],
+  "gamma": 0.997,
+  "reward_weights": {"survival": 0.2, "xp": 0.1, "kills": 0.1, "damage": 0.2, "death": 20},
+  "n_steps": 512,
+  "batch_size": 256,
+  "n_epochs": 4,
+  "learning_rate": 0.0001,
+  "target_kl": 0.02,
+  "checkpoint_steps": 100000
+}

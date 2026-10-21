@@ -26,9 +26,12 @@ python -m pip freeze > results/jz-packages.txt
 
 Creating the GPU-compatible venv is site/environment dependent; do not copy a
 laptop CPU venv. For offline compute nodes, stage packages, browser binaries and
-game files using a node that can download them. Keep `PLAYWRIGHT_BROWSERS_PATH`
-exported when submitting if you used a custom installation path. Alternatively,
-set `POKERL_CHROME` to a compatible installed Chromium executable.
+game files using a node that can download them. Full-game training, evaluation,
+smoke tests and playback automatically use the project's `.playwright-browsers/`
+directory when it exists and `PLAYWRIGHT_BROWSERS_PATH` is unset. Keep that
+variable exported if you used a different installation path. Alternatively,
+set `POKERL_CHROME` to a compatible installed Chromium executable; recording
+still needs Playwright's FFmpeg in the selected browser cache.
 
 Bootstrap is a one-time preparation step for unchanged inputs. Its successful
 revision/hash output means it completed. It is no longer called by the full-game
@@ -101,10 +104,16 @@ The job prints `TRAINING SAVED` after saving the final model.
 | Environment variable | Default | Meaning |
 | --- | --- | --- |
 | `POKERL_ENVS` | 4 | Parallel environments |
-| `POKERL_STEPS` | 100000 | Requested total transitions across all environments |
+| `POKERL_STEPS` | 1000000 | Requested transitions across all environments; additional when resuming |
 | `POKERL_DURATION` | 120 | Maximum simulated seconds per episode |
 | `POKERL_MAX_SECONDS` | 6000 | Learning wall-time budget; 0 disables it |
 | `POKERL_EPISODES` | 20 | Evaluation episodes per policy |
+
+For controlled comparisons, pass a JSON preset as the argument after `train`,
+for example `sbatch cluster/full-game-v100.slurm train configs/full_horizon.json`.
+See [improvement experiments](full-game-experiments.md) for all six configurations,
+paired evaluations, checkpoint comparisons, and resume commands. Explicit
+environment overrides win over preset values.
 
 Example of a larger experiment, after reviewing the first evaluation:
 
@@ -146,6 +155,10 @@ It uses CPU inference but the shared batch script still reserves and checks a GP
 Compare `survival`, `dead`, `xp`, `damage` and `return`, not just training reward.
 `damage` means HP lost. Preserve the per-episode results as well as averages.
 
+To inspect a model visually, use the [model viewer](watch-model.md). The batch
+scripts also accept `watch <training-run-directory>` to record a game without
+a display and save a WebM video for download.
+
 ## Common failures
 
 | Symptom | What to check |
@@ -156,7 +169,7 @@ Compare `survival`, `dead`, `xp`, `damage` and `return`, not just training rewar
 | Missing prepared game files | Run bootstrap on the preparation node, then keep generated files on shared storage. |
 | `.venv/bin/activate` missing | Submit from the repository root and prepare `.venv` there. |
 | CUDA unavailable or unsupported architecture | Check the GPU allocation and the venv's PyTorch/CUDA compatibility. |
-| Chromium executable missing | Export the browser installation path used during preparation, or set `POKERL_CHROME`. |
+| Chromium executable missing | The project `.playwright-browsers/` cache is detected automatically. Check that it contains the browser version required by the installed Playwright; for a different cache, export `PLAYWRIGHT_BROWSERS_PATH`, or set `POKERL_CHROME` for a custom executable. |
 | Browser shared-library error | Use a compatible site browser/environment; downloading Chromium alone does not install its system libraries. |
 | Job rejected for QoS/time | Override the script's development QoS and time with values allowed for your allocation. |
 | Output already contains a run | Select a new output directory; the Python trainer refuses to overwrite `run.json`. |
